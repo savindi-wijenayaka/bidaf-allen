@@ -10,7 +10,7 @@ class BidafPredictor(Predictor):
     Predictor for the :class:`~allennlp.models.bidaf.BidirectionalAttentionFlow` model.
     """
 
-    def predict(self, question: str, passage: str) -> JsonDict:
+    def predict(self, question: str = None, passage: str = None) -> JsonDict:
         """
         Make a machine comprehension prediction on the supplied input.
         See https://rajpurkar.github.io/SQuAD-explorer/ for more information about the machine comprehension task.
@@ -35,7 +35,23 @@ class BidafPredictor(Predictor):
         """
         Expects JSON that looks like ``{"question": "...", "passage": "..."}``.
         """
-        question_text = json_dict["question"]
-        passage_text = json_dict["passage"]
+        question_text=None
+        passage_text=None
+        if json_dict["question"] != None:
+            question_text = json_dict["question"]
+        if json_dict["passage"] != None: 
+            passage_text = json_dict["passage"]
 
-        return self._dataset_reader.text_to_instance(question_text, passage_text)
+        if question_text and passage_text:
+            # print("ok")
+            return self._dataset_reader.text_to_instance(question_text=question_text, passage_text=passage_text)
+        elif question_text and passage_text is None:
+            # print("ok1")
+            tokenized_question = self._dataset_reader.text_to_instance_one_argument(passage_text=question_text)
+            # print(tokenized_question)
+            return tokenized_question
+        elif passage_text and question_text is None:
+            print(passage_text)
+            return self._dataset_reader.text_to_instance_one_argument(passage_text=passage_text)
+        else:
+            raise ValueError('Both question and passage is missing')

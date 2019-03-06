@@ -97,14 +97,13 @@ class SquadReader(DatasetReader):
     @overrides
     def text_to_instance(self,  # type: ignore
                          question_text: str,
-                         passage_text: str = None,
+                         passage_text: str,
                          char_spans: List[Tuple[int, int]] = None,
                          answer_texts: List[str] = None,
                          passage_tokens: List[Token] = None) -> Optional[Instance]:
         # pylint: disable=arguments-differ
         if not passage_tokens:
             passage_tokens = self._tokenizer.tokenize(passage_text)
-            # print(type(passage_tokens) + "squad.py(dsr)")
         question_tokens = self._tokenizer.tokenize(question_text)
         if self.passage_length_limit is not None:
             passage_tokens = passage_tokens[: self.passage_length_limit]
@@ -135,10 +134,50 @@ class SquadReader(DatasetReader):
                 return None
             else:
                 token_spans.append((len(passage_tokens) - 1, len(passage_tokens) - 1))
-          
         return util.make_reading_comprehension_instance(question_tokens,
                                                         passage_tokens,
                                                         self._token_indexers,
                                                         passage_text,
                                                         token_spans,
                                                         answer_texts)
+    @overrides
+    def text_to_instance_one_argument(self,  # type: ignore
+                         passage_text: str,
+                         char_spans: List[Tuple[int, int]] = None,
+                         passage_tokens: List[Token] = None) -> Optional[Instance]:
+        # pylint: disable=arguments-differ
+        if not passage_tokens:
+            passage_tokens = self._tokenizer.tokenize(passage_text)
+        
+        if self.passage_length_limit is not None:
+            passage_tokens = passage_tokens[: self.passage_length_limit]
+        
+        char_spans = char_spans or []
+        # We need to convert character indices in `passage_text` to token indices in
+        # `passage_tokens`, as the latter is what we'll actually use for supervision.
+        token_spans: List[Tuple[int, int]] = []
+        passage_offsets = [(token.idx, token.idx + len(token.text)) for token in passage_tokens]
+        for char_span_start, char_span_end in char_spans:
+            if char_span_end > passage_offsets[-1][1]:
+                continue
+            (span_start, span_end), error = util.char_span_to_token_span(passage_offsets,
+                                                                         (char_span_start, char_span_end))
+            if error:
+                logger.debug("Passage: %s", passage_text)
+                logger.debug("Passage tokens: %s", passage_tokens)
+               
+                logger.debug("Answer span: (%d, %d)", char_span_start, char_span_end)
+                logger.debug("Token span: (%d, %d)", span_start, span_end)
+                logger.debug("Tokens in answer: %s", passage_tokens[span_start:span_end + 1])
+                logger.debug("Answer: %s", passage_text[char_span_start:char_span_end])
+            token_spans.append((span_start, span_end))
+        # The original answer is filtered out
+        if char_spans and not token_spans:
+            if self.skip_invalid_examples:
+                return None
+            else:
+                token_spans.append((len(passage_tokens) - 1, len(passage_tokens) - 1))
+        return util.make_reading_comprehension_instance_one_argument(passage_tokens,
+                                                        self._token_indexers,
+                                                        passage_text,
+                                                        token_spans)

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 # When training a model, many sets of weights are saved. By default we want to
 # save/load this set of weights.
 _DEFAULT_WEIGHTS = "best.th"
+PATH = "/home/savindi/Desktop/bidaf-allennlp/tensor_dict.txt"
 
 
 class Model(torch.nn.Module, Registrable):
@@ -113,6 +114,19 @@ class Model(torch.nn.Module, Registrable):
         """
         raise NotImplementedError
 
+
+    # def forward_on_instances_one_argument(self,
+    #                          instances: List[Instance]) -> List[Dict[str, numpy.ndarray]]:
+    #     batch_size = len(instances)
+    #     with torch.no_grad():
+    #         cuda_device = self._get_prediction_device()
+    #         dataset = Batch(instances)      
+    #         dataset.index_instances(self.vocab)
+
+    #         model_input = dataset.as_tensor_dict()
+    #         return model_input
+
+
     def forward_on_instance(self, instance: Instance) -> Dict[str, numpy.ndarray]:
         """
         Takes an :class:`~allennlp.data.instance.Instance`, which typically has raw text in it,
@@ -147,15 +161,16 @@ class Model(torch.nn.Module, Registrable):
         A list of the models output for each instance.
         """
         
-        batch_size = len(instances)
-        with torch.no_grad():
-            cuda_device = self._get_prediction_device()
-            dataset = Batch(instances)      
-            dataset.index_instances(self.vocab)
+        def checkKey(dict, key): 
+            if key in dict.keys(): 
+                return True
+            else: 
+                return False
 
-            model_input = util.move_to_device(dataset.as_tensor_dict(), cuda_device)
-
-            #model inputs is taken after tokenizing
+        def calculateOutput(tensor_input):
+            # print("This is what was saved")
+            # print(tensor_input)
+            model_input = util.move_to_device(tensor_input, cuda_device)
             outputs = self.decode(self(**model_input))
 
             instance_separated_output: List[Dict[str, numpy.ndarray]] = [{} for _ in dataset.instances]
@@ -175,8 +190,42 @@ class Model(torch.nn.Module, Registrable):
                     continue
                 for instance_output, batch_element in zip(instance_separated_output, output):
                     instance_output[name] = batch_element
-            
+            # print(instance_separated_output)
             return instance_separated_output
+
+
+        batch_size = len(instances)
+        with torch.no_grad():
+            cuda_device = self._get_prediction_device()
+            dataset = Batch(instances)      
+            dataset.index_instances(self.vocab)
+            tensor_dic =dataset.as_tensor_dict()
+
+            # print(type(tensor_dic))
+            
+            # print()
+            dictionary =instances[0].fields
+
+            question_exist = checkKey(dictionary, 'question')
+            passage_exist = checkKey(dictionary, 'passage')
+
+            # print(question_exist)
+            # print(passage_exist)
+            # print()
+            #model inputs is taken after tokenizing
+            
+            if question_exist and passage_exist:
+                torch.save(tensor_dic, PATH)
+                return calculateOutput(tensor_dic)
+            elif question_exist and not passage_exist:
+                tensor_dic_2=torch.load(PATH)
+                tensor_dic_2['question']= tensor_dic['question']
+                tensor_dic_2['metadata'][0]['question_tokens']= tensor_dic['metadata'][0]['passage_tokens']
+                print()
+                # print(tensor_dic_2)
+                return calculateOutput(tensor_dic_2)
+            else:
+                raise ValueError ("Error in inputs")
 
     def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """

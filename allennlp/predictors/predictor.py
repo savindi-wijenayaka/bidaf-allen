@@ -52,10 +52,12 @@ class Predictor(Registrable):
 
     def predict_json(self, inputs: JsonDict) -> JsonDict:
         instance = self._json_to_instance(inputs)
+        # return print(instance)
         return self.predict_instance(instance)
 
     def predict_instance(self, instance: Instance) -> JsonDict:
         outputs = self._model.forward_on_instance(instance)
+        # print(sanitize(outputs)) 
         return sanitize(outputs)
 
     def _json_to_instance(self, json_dict: JsonDict) -> Instance:
