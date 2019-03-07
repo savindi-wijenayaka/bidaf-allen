@@ -4,6 +4,8 @@ This is a Edited version of AllenNLP BiDAF implementation for Machine Comprehens
 ## BiDAF Model Architecture
 ![BiDaF_Arch](https://github.com/PhantomGrin/bidaf-allen/blob/master/images/bidaf_architecture.png)
 
+(Source: https://allenai.github.io/bi-att-flow/)
+
 ## Tokenization and Instance Creation -> Path
 
 ## Making the Tensors -> Path
