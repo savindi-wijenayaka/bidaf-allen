@@ -1,6 +1,8 @@
 # BiDAF-AllenNLP Edited
 This is a Edited version of AllenNLP BiDAF implementation for Machine Comprehension Tasks. In this I separated the Tokenization and Embedding part of the passage. In the first calling pass the passage and a sample question. After that you can just ask the question. This is coded just for experience.
 
+## BiDAF Model Architecture
+
 ## Tokenization and Instance Creation -> Path
 
 ## Making the Tensors -> Path
