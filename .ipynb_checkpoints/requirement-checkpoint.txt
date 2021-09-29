@@ -80,7 +80,7 @@ nb-conda==2.2.1
 nb-conda-kernels==2.2.0
 nbconvert==5.3.1
 nbformat==4.4.0
-nltk==3.4
+nltk==3.6.3
 notebook==5.7.4
 numpy==1.16.2
 numpydoc==0.8.0
